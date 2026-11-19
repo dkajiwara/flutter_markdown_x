@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # rustup installs the channel and components from rust-toolchain.toml.
       - run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@v2
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -78,7 +78,7 @@ jobs:
       # ffigen finds libclang through llvm-path in ffigen.yaml (/usr/lib/llvm-*).
       - run: sudo apt-get update && sudo apt-get install -y libclang-dev
       - run: ls /usr/lib/llvm-*/lib/libclang.so
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cargo/bin/cbindgen
           key: cbindgen-${{ env.CBINDGEN_VERSION }}-${{ runner.os }}
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -132,7 +132,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -148,7 +148,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -163,7 +163,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -203,8 +203,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: node tool/check_wasm.mjs
@@ -227,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -248,7 +248,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
