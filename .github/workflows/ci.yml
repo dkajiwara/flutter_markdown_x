@@ -1,0 +1,274 @@
+# CI for flutter_markdown_x.
+#
+# - Whether the binaries in prebuilt/ match the Rust sources (manifest)
+# - Whether the generated C header and Dart bindings match the Rust C ABI
+# - Whether tests pass on macOS / Linux / Windows with the bundled native parser (the only parser)
+# - On Web, the ABI of the bundled WASM and its behavior in Chrome
+# - Analyze and test on the declared minimum SDK (the lower bound of the sdk in pubspec)
+# - The example app, and the contents of the published archive with a build from a consuming app
+#
+# Cost-aware design (this repo is private: macOS minutes count 10x and Windows 2x).
+# Everything that does not need a specific OS runs on ubuntu-latest. The macOS and Windows jobs
+# that only confirm the prebuilt binary loads run on push to main, weekly, and on demand, and
+# only the macOS test of the bundled binary runs on every pull request. See README (Development).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Weekly (Monday 03:00 UTC): catches breakage from new Flutter / Rust / runner images.
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The lower bound of environment.flutter in pubspec.yaml (bundles Dart 3.14.0).
+  # Change this too when you change the lower bound.
+  FLUTTER_MIN_VERSION: "3.50.0"
+  CBINDGEN_VERSION: "0.29.4"
+
+jobs:
+  # The actions every workflow uses are pinned to commits in .github/workflows/actions.lock
+  # (https://gh.io/actions-lockfile). After changing a `uses:` line, run `gh actions-lock`.
+  lockfile:
+    name: workflow lockfile matches the workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # The gh-actions-lock release that wrote actions.lock.
+      GH_ACTIONS_LOCK_VERSION: v0.4.1
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - run: gh extension install github/gh-actions-lock --pin "$GH_ACTIONS_LOCK_VERSION"
+      - run: gh actions-lock --verify
+
+  rust:
+    name: Rust (fmt, clippy, test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      # rustup installs the channel and components from rust-toolchain.toml.
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: native
+      - run: cargo fmt --manifest-path native/Cargo.toml --check
+      - run: cargo clippy --locked --manifest-path native/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --manifest-path native/Cargo.toml
+
+  prebuilt-manifest:
+    name: prebuilt binaries match sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run tool/prebuilt_manifest.dart --check
+
+  bindings-drift:
+    name: generated FFI bindings match the Rust C ABI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: rustup show active-toolchain
+      # ffigen finds libclang through llvm-path in ffigen.yaml (/usr/lib/llvm-*).
+      - run: sudo apt-get update && sudo apt-get install -y libclang-dev
+      - run: ls /usr/lib/llvm-*/lib/libclang.so
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ~/.cargo/bin/cbindgen
+          key: cbindgen-${{ env.CBINDGEN_VERSION }}-${{ runner.os }}
+      - run: cargo install cbindgen --locked --version "$CBINDGEN_VERSION"
+      - run: flutter pub get
+      # Regenerate the header and bindings, and fail if they differ from the committed ones.
+      # The output is derived from the header text (not the platform), so the libclang version
+      # only matters for doc comments. If a libclang upgrade ever changes them, pin the version.
+      - run: sh tool/generate_bindings.sh
+      - run: git diff --exit-code -- native/include lib/src/parser/native/bindings.dart
+
+  # The minimum supported Flutter. The bundled Linux binary is loaded the same way as on macOS,
+  # so this does not need a macOS runner.
+  flutter-min:
+    name: Flutter min SDK on Linux (native required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_MIN_VERSION }}
+          cache: true
+      # Keep the pubspec lower bound for flutter in sync with the version used by this job.
+      - run: |
+          grep -q "flutter: \">=$FLUTTER_MIN_VERSION\"" pubspec.yaml
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: dart format --output=none --set-exit-if-changed lib test tool hook benchmark
+      - run: flutter test --no-pub --reporter expanded
+
+  flutter-linux:
+    name: Flutter on Linux (native required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: dart format --output=none --set-exit-if-changed lib test tool hook benchmark
+      - run: flutter test --no-pub --reporter expanded
+
+  # Every pull request: the macOS binary (arm64 on macos-latest) is what maintainers use most.
+  flutter-macos:
+    name: Flutter on macOS (native required)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --no-pub --reporter expanded
+
+  # Windows minutes cost 2x. Dart code is platform-neutral and only the DLL loading differs,
+  # so this runs after merge, weekly, and on demand instead of on every pull request.
+  flutter-windows:
+    name: Flutter on Windows (native required)
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --no-pub --reporter expanded
+
+  # macOS minutes cost 10x. Rebuilding the binary on macOS runs after merge, weekly, and on demand.
+  native-rebuild:
+    name: rebuilt macOS binary passes the suite
+    if: github.event_name != 'pull_request'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: native
+      # Bit-for-bit identity is not required. This checks that a binary built from source
+      # works with the same ABI and passes the parity and conformance tests.
+      - run: sh tool/build_native.sh macos
+      - run: flutter pub get
+      - run: flutter test --no-pub --reporter expanded
+
+  native-rebuild-linux:
+    name: rebuilt Linux binary passes the suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: native
+      # Build with plain cargo against the runner's glibc (x64 only). The distributed
+      # glibc 2.17 binary is cross-built with zig (doc/native-abi.md).
+      - run: LINUX_BUILDER=cargo sh tool/build_native.sh linux
+      - run: flutter pub get
+      - run: flutter test --no-pub --reporter expanded
+
+  web:
+    name: Web (WASM ABI and Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+      - run: node tool/check_wasm.mjs
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # Every test file that is not marked @TestOn('vm') (about 50 s).
+      - run: sh tool/chrome_test.sh
+      - working-directory: example
+        run: flutter pub get
+      - working-directory: example
+        run: flutter test --no-pub --platform chrome test/web_consumer_test.dart
+      - working-directory: example
+        run: flutter build web --no-pub
+
+  example:
+    name: example app (analyze, format, VM tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - working-directory: example
+        run: flutter pub get
+      - working-directory: example
+        run: flutter analyze --no-pub
+      - working-directory: example
+        run: dart format --output=none --set-exit-if-changed lib test
+      # The VM run needs the Linux binary from prebuilt/ through the build hook.
+      # test/web_consumer_test.dart is @TestOn('browser'), so it is skipped here and runs in `web`.
+      - working-directory: example
+        run: flutter test --no-pub --reporter expanded
+
+  package:
+    name: published package smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: sh tool/package_smoke_test.sh

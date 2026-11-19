@@ -1,0 +1,46 @@
+# Files that `dart pub publish` leaves out of the package archive.
+#
+# A .pubignore REPLACES the .gitignore in the same directory for pub (the rules are not added to
+# each other), so the rules of the root .gitignore are repeated here. Keep the two in sync.
+# Nested .gitignore files (example/, native/) still apply on their own.
+
+# --- Same as .gitignore -------------------------------------------------------------------
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+/build/
+/coverage/
+
+# Claude Code working worktrees
+/.claude/
+
+# --- Only for the published archive -------------------------------------------------------
+# Rust build output (also ignored by native/.gitignore). native/ sources stay, so the prebuilt
+# binaries can be rebuilt and audited.
+/native/target/
+
+# Symlinks to prebuilt/web/mdx_native.wasm. pub packs the file contents, so each one would
+# double the 335 KB module. Tests are not run from the published package; the real module ships
+# as prebuilt/web/mdx_native.wasm.
+/test/fixtures/mdx_native.wasm
+/example/test/fixtures/mdx_native.wasm
