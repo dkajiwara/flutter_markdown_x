@@ -1,0 +1,18 @@
+{
+  "sourceSha256": "6166df08b4e23fefbf3922bb074e5461df84f0a142d2abde8fe78a533fd0a1a5",
+  "binaries": {
+    "prebuilt/android-arm/libmdx_native.so": "7d3ebf05b69449ed6af0ccb8a677eba21c42bb867c9270d0a31aedc0bf092fec",
+    "prebuilt/android-arm64/libmdx_native.so": "72a534bfe038ba9dfc42cf160d4595e88082d7d385335ea53963ce577a981621",
+    "prebuilt/android-x64/libmdx_native.so": "256b943904e664dc677f314513074d2173a6328a488cdd205cbe1364423a4590",
+    "prebuilt/ios-arm64-sim/libmdx_native.dylib": "59c0b5ef03c037915ccc28ef883f8f2ceeae793fb153dd63f170e0aa9abe12f0",
+    "prebuilt/ios-arm64/libmdx_native.dylib": "f9b6f786e0e5091640fdd0bfbb840f63700876d8ac84ebd547fdd2b7ec701373",
+    "prebuilt/ios-x64-sim/libmdx_native.dylib": "cbb89cd0810e263390d586e5557b8713c1ec6653a76244de1d5fa19a0aa148cc",
+    "prebuilt/linux-arm64/libmdx_native.so": "98f43c7e713235675b4fff20da68fa7294bd333a00022d8d8922d014d1b474de",
+    "prebuilt/linux-x64/libmdx_native.so": "36d634a57ddd83566289f312328b060178161f05bf3b10031c3c2e1d62699f6b",
+    "prebuilt/macos-arm64/libmdx_native.dylib": "3d3018da8a62fb0055a25ddd26db9855a19cc860c0109568f9d49fc607f57276",
+    "prebuilt/macos-x64/libmdx_native.dylib": "c1f46a047a338ce9810c3f23a4d4d4348ba5f9c1adfe40d6385f8569c47a1092",
+    "prebuilt/web/mdx_native.wasm": "643dbc2da4bf784e826c0038470a439de1dbe0b43a95b6d37d1be6de747a43cc",
+    "prebuilt/windows-arm64/mdx_native.dll": "8ab12dabb32748b4eb19e1a7dbd13c005f502b7be5d6b27d3b027c69a4f0b050",
+    "prebuilt/windows-x64/mdx_native.dll": "ce3753d49fb27cd4f6f22829010aedd973c03ed018ae828a051f5676dab02e4b"
+  }
+}

@@ -1,0 +1,64 @@
+# Publishes the example app (Flutter web) to GitHub Pages:
+# https://dkajiwara.github.io/flutter_markdown_x/
+#
+# Requires Settings -> Pages -> Source: GitHub Actions. Pages is available for a public
+# repository, or for a private one on a paid plan.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "example/**"
+      - "prebuilt/web/**"
+      - "pubspec.yaml"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; let a running deployment finish instead of cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the example for the web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Get dependencies
+        working-directory: example
+        run: flutter pub get
+      - name: Build web
+        working-directory: example
+        run: flutter build web --release --no-pub --base-href /flutter_markdown_x/
+      # Keeps GitHub Pages from running Jekyll over the build (it would drop files that start
+      # with an underscore).
+      - name: Add .nojekyll
+        run: touch example/build/web/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: example/build/web
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,4 @@
+# Toolchain versions for working on this repository (https://mise.jdx.dev).
+# Rust is pinned separately in rust-toolchain.toml.
+[tools]
+flutter = "3.50.0-stable"

@@ -1,0 +1,32 @@
+# Weekly dependency update PRs. Grouped and limited so a private repo is not flooded.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: pub
+    directory: /example
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: cargo
+    directory: /native
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      cargo:
+        patterns: ["*"]
