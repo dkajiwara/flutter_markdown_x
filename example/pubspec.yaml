@@ -37,10 +37,10 @@ dependencies:
   flutter_markdown_x:
     path: ..
   flutter_math_fork: 0.7.4
-  mermaid_flutter: 0.3.2
+  mermaid_flutter: 0.5.0
   material_ui: ^1.11.1
   cupertino_ui: ^1.1.7
-  mermaid_core: ^0.3.2
+  mermaid_core: ^0.5.0
   video_player: ^2.14.1
   pdfrx: ^3.0.3
 
